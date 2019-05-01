@@ -1,10 +1,7 @@
-import javafx.scene.image.Image;
-
 public class Card {
     //Rank and suit of the card
     private int rank = 0;
     private int suit = 0;
-    Image img;
 
     public Card(int rank, int suit) {//constructor to create a Card object
         this.rank = rank;
