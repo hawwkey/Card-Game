@@ -6,7 +6,7 @@ public class DeckOfCards {
     Stack<Card> deck = new Stack<>();//using stack to create a deck of cards
 
     public DeckOfCards() {
-        for (int i = 1; i <= 52; i++) {
+        for (int i = 1; i <= 13; i++) {
             for (int j = 0; j<=3; j++){
                 deck.push(new Card(i,j));//fill the stack with cards
             }

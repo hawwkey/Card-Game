@@ -1,7 +1,7 @@
 public class Card {
     //Rank and suit of the card
-    private int rank = 0;
-    private int suit = 0;
+    private int rank;
+    private int suit;
 
     public Card(int rank, int suit) {//constructor to create a Card object
         this.rank = rank;
@@ -17,9 +17,8 @@ public class Card {
     }
 
     public String toString() {//returns the name of the card's image file
-        String cardSuit = "";
-        String cardRank = "";
-        String cardString = "";
+        String cardSuit;
+        String cardRank;
 
         int cs = getSuit();
         int cr = getRank();
@@ -67,7 +66,6 @@ public class Card {
             default:
                 cardRank = "n/a";
         }//switch rank
-
         switch (cs) {
             case 0:
                 cardSuit = "clubs";
@@ -97,7 +95,7 @@ public class Card {
 
     public boolean rankIsGreaterThan(Card c) {//check if card's rank is greater
         boolean rankIsGreater = false;
-        if (rank < c.getRank()) {
+        if (rank > c.getRank()) {
             rankIsGreater = true;
         }
         return rankIsGreater;

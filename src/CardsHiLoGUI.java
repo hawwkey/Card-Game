@@ -1,5 +1,6 @@
 //Standart imports
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 
@@ -21,24 +22,32 @@ import javafx.scene.control.Menu;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.ProgressIndicator;
+import javafx.scene.control.Alert;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyCodeCombination;
+import javafx.scene.input.KeyCombination;
+
+
 
 
 public class CardsHiLoGUI extends Application {
-    //Declare variables
+    //Declare compinents
     private Label lblFirstDeal, lblSecondDeal, lblNextCard, lblGameStatus;
-    private Button btnDealFirst, btnDealSecond;
+    private Button btnDealLeft, btnDealRight;
     private RadioButton rbHigher, rbLower;
     private ToggleGroup rbToggle;
-    private VBox vbToggle;
-    private Image imgFirstCard, imgSecondCard;
-    private ImageView ivFirstCard, ivSecondCard;
+    private Image imgLeftCard, imgRightCard;
+    private ImageView ivLeftCard, ivRightCard;
     private MenuBar mnuBar;
     private Menu mnuFile, mnuHelp;
     private MenuItem itemNewGame, itemShuffle, itemExit, itemAbout;
     private ProgressBar progBar;
     private ProgressIndicator progIndicator;
+    private DeckOfCards deckOfCards;
+    private Card leftCard, rightCard;
+    private double score;
 
 
     public void init() {
@@ -53,23 +62,26 @@ public class CardsHiLoGUI extends Application {
         mnuFile = new Menu("File");
         itemNewGame = new MenuItem("New game");
         itemShuffle = new MenuItem("Shuffle");
+        itemShuffle.setDisable(true);//is disabled before game is started
         itemExit = new MenuItem("Exit");
         mnuFile.getItems().addAll(itemNewGame, itemShuffle, itemExit);
         mnuBar.getMenus().add(mnuFile);
-        //TODO handle events
+
+        //handle events on menu items
+        itemNewGame.setOnAction(ae -> newGame());
+        itemNewGame.setAccelerator(new KeyCodeCombination(KeyCode.N, KeyCombination.CONTROL_DOWN));//add shortcut
+        itemShuffle.setOnAction(ae -> {
+            deckOfCards.shuffle();
+            lblGameStatus.setText("Shuffled!");
+        });
+        itemExit.setOnAction(ae -> Platform.exit());
+        itemExit.setAccelerator(new KeyCodeCombination(KeyCode.Q, KeyCombination.CONTROL_DOWN));
 
         mnuHelp = new Menu("Help");
         itemAbout = new MenuItem("About");
         mnuHelp.getItems().add(itemAbout);
         mnuBar.getMenus().add(mnuHelp);
-        //TODO handle events
-
-        //Buttons
-        btnDealFirst = new Button("<- Deal First Card");
-        btnDealFirst.setMinWidth(150);
-        btnDealSecond = new Button("Deal Second Card ->");
-        btnDealSecond.setMinWidth(150);
-        //TODO handle button events
+        itemAbout.setOnAction(ae -> about());
 
         //Radio Buttons
         rbHigher = new RadioButton("Higher");
@@ -77,12 +89,26 @@ public class CardsHiLoGUI extends Application {
         rbToggle = new ToggleGroup();
         rbHigher.setToggleGroup(rbToggle);
         rbLower.setToggleGroup(rbToggle);
-        vbToggle = new VBox();
+
+        //Buttons
+        btnDealLeft = new Button("<- Deal First Card");
+        btnDealLeft.setMinWidth(150);
+        btnDealLeft.setDisable(true);//is disabled before game is started
+        btnDealRight = new Button("Deal Second Card ->");
+        btnDealRight.setMinWidth(150);
+        btnDealRight.setDisable(true);//is disabled before game is started
+        //handle button events
+        btnDealLeft.setOnAction(ae -> dealLeft());
+        btnDealRight.setOnAction(ae -> dealRight());
 
         //Image views
-        ivFirstCard = new ImageView();
-        ivSecondCard = new ImageView();
-        //TODO add images
+        ivLeftCard = new ImageView();
+        ivRightCard = new ImageView();
+        //set default images
+        imgLeftCard = new Image("file:images/black_joker.png");
+        imgRightCard = new Image("file:images/red_joker.png");
+        ivLeftCard.setImage(imgLeftCard);
+        ivRightCard.setImage(imgRightCard);
 
         //Progress indication
         progBar = new ProgressBar(0);
@@ -92,13 +118,113 @@ public class CardsHiLoGUI extends Application {
 
     }//init
 
+    private void newGame() {
+        //create a new deck and shuffle
+        deckOfCards = new DeckOfCards();
+        deckOfCards.shuffle();
+
+        //Deal 2 cards and set images
+        leftCard = deckOfCards.dealTopCard();
+        rightCard = deckOfCards.dealTopCard();
+        imgLeftCard = new Image("file:images/" + leftCard.toString() + ".png");
+        ivLeftCard.setImage(imgLeftCard);
+        imgRightCard = new Image("file:images/" + rightCard.toString() + ".png");
+        ivRightCard.setImage(imgRightCard);
+        //set additional elements
+        lblGameStatus.setText("Good luck!");
+        score = 0;
+        progBar.setProgress(score);
+        progIndicator.setProgress(score);
+        //enable buttons
+        itemShuffle.setDisable(false);
+        btnDealLeft.setDisable(false);
+        btnDealRight.setDisable(false);
+    }//new game method
+
+    private void dealLeft() {
+        //check if deck is empty
+        if (deckOfCards.isEmpty()) {
+            lblGameStatus.setText("Deck is empty");
+            btnDealLeft.setDisable(true);
+            btnDealRight.setDisable(true);
+        }
+        //check if user chose the option
+        else if (!rbLower.isSelected() && !rbHigher.isSelected())
+            lblGameStatus.setText("Choose the option!");
+        else {
+            //deal card, set image and check the guess
+            leftCard = deckOfCards.dealTopCard();
+            imgLeftCard = new Image("file:images/" + leftCard.toString() + ".png");
+            ivLeftCard.setImage(imgLeftCard);
+            //if guess was right
+            if ((rbLower.isSelected() && leftCard.rankIsLessThan(rightCard)) || (rbHigher.isSelected() && leftCard.rankIsGreaterThan(rightCard))) {
+                score += 0.2;
+                progBar.setProgress(score);
+                progIndicator.setProgress(score);
+                lblGameStatus.setText("Good job!");
+            }
+            else {
+                lblGameStatus.setText("You lost :(");
+                btnDealLeft.setDisable(true);
+                btnDealRight.setDisable(true);
+            }
+            //winning condition
+            if (score==1) {
+                lblGameStatus.setText("You won! GG WP");
+                btnDealLeft.setDisable(true);
+                btnDealRight.setDisable(true);
+            }
+        }
+    }//dealLeft()
+
+    private void dealRight() {
+        //the same as dealLeft() but for right card
+        if (deckOfCards.isEmpty()) {
+            lblGameStatus.setText("Deck is empty");
+            btnDealLeft.setDisable(true);
+            btnDealRight.setDisable(true);
+        }
+        else if (!rbLower.isSelected() && !rbHigher.isSelected())
+            lblGameStatus.setText("Choose the option!");
+        else {
+            rightCard = deckOfCards.dealTopCard();
+            imgRightCard = new Image("file:images/" + rightCard.toString() + ".png");
+            ivRightCard.setImage(imgRightCard);
+            if ((rbLower.isSelected() && rightCard.rankIsLessThan(leftCard)) || (rbHigher.isSelected() && rightCard.rankIsGreaterThan(leftCard))) {
+                score += 0.2;
+                progBar.setProgress(score);
+                progIndicator.setProgress(score);
+                lblGameStatus.setText("Good job!");
+            }
+            else {
+                lblGameStatus.setText("You lost :(");
+                btnDealLeft.setDisable(true);
+                btnDealRight.setDisable(true);
+            }
+            if (score==1) {
+                lblGameStatus.setText("You won! GG WP");
+                btnDealLeft.setDisable(true);
+                btnDealRight.setDisable(true);
+            }
+        }
+    }//dealRight()
+
+    private void about(){
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("Developers information");
+        alert.setHeaderText("Nikita Folomeev");
+        alert.setContentText("Student number: 2980885");
+        alert.showAndWait();
+    }//about
+
     @Override
     public void start(Stage pStage) {
         //Set width and height
         pStage.setWidth(500);
         pStage.setHeight(400);
+        pStage.setResizable(false);
         //Create layout
-        BorderPane bp = new BorderPane();//Can we add menus to grid pane??
+        BorderPane bp = new BorderPane();
         GridPane gp = new GridPane();
         gp.setAlignment(Pos.BASELINE_CENTER);
         //Add components
@@ -107,15 +233,15 @@ public class CardsHiLoGUI extends Application {
 
         //Divide grid pane by 3 vertical boxes with content
         VBox vbLeft = new VBox();
-        vbLeft.getChildren().addAll(lblFirstDeal, ivFirstCard);
+        vbLeft.getChildren().addAll(lblFirstDeal, ivLeftCard);
         vbLeft.setAlignment(Pos.BASELINE_CENTER);
         vbLeft.setSpacing(15);
         VBox vbCenter = new VBox();
-        vbCenter.getChildren().addAll(lblNextCard, rbHigher, rbLower, btnDealFirst, btnDealSecond);
+        vbCenter.getChildren().addAll(lblNextCard, rbHigher, rbLower, btnDealLeft, btnDealRight);
         vbCenter.setAlignment(Pos.BASELINE_CENTER);
         vbCenter.setSpacing(15);
         VBox vbRight = new VBox();
-        vbRight.getChildren().addAll(lblSecondDeal, ivSecondCard, lblGameStatus);
+        vbRight.getChildren().addAll(lblSecondDeal, ivRightCard, lblGameStatus);
         vbRight.setAlignment(Pos.BASELINE_CENTER);
         vbRight.setSpacing(15);
 
@@ -135,8 +261,11 @@ public class CardsHiLoGUI extends Application {
         //Beautify
         gp.setPadding(new Insets(10));
         gp.setVgap(10);
+        gp.setHgap(10);
+
         //Create the scene
         Scene s = new Scene(bp);
+        s.getStylesheets().add("css/styles.css");
         //Set the scene
         pStage.setScene(s);
         //Show the stage
